@@ -1,10 +1,12 @@
 # -----------------------------------------------------------------
 # engine.py
 #
-# This is the UPDATED "brain" (v19).
-# - REMOVED the "context filter" for the PHONE regex.
-#   This was too strict and caused us to miss the
-#   phone number in your example.
+# This is the UPDATED "brain" (v24).
+# - FIX 1: Removed the "PHONE" context filter. This
+#   will fix the bug where the phone number in the
+#   header was missed.
+# - FIX 2: Added "dear" and "coordinator" to the
+#   AI_BLOCK_LIST to fix the false positive <PERSON> tags.
 # -----------------------------------------------------------------
 
 import easyocr
@@ -12,6 +14,8 @@ import spacy
 import re
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
+import cv2 # OpenCV
+import numpy as np
 
 # --- Import your image converter ---
 try:
@@ -35,18 +39,29 @@ except Exception as e:
 
 print("Loading spaCy (NLP) model...")
 try:
-    NLP = spacy.load("en_core_web_sm")
+    NLP = spacy.load("en_core_web_trf")
     print("spaCy model loaded successfully.")
 except OSError:
-    print("Error: spaCy model 'en_core_web_sm' not found.")
-    print("Please run: python -m spacy download en_core_web_sm")
+    print("="*50)
+    print("Error: spaCy model 'en_core_web_trf' not found.")
+    print("Please run this command in your terminal:")
+    print("\n    python3 -m spacy download en_core_web_trf\n")
+    print("="*50)
     NLP = None
+except ImportError:
+    print("="*50)
+    print("Error: spaCy model 'en_core_web_trf' not found.")
+    print("Please run this command in your terminal:")
+    print("\n    python3 -m spacy download en_core_web_trf\n")
+    print("="*50)
+    NLP = None
+
 
 # --- 2. GLOBAL REGEX RULES & BLOCK LISTS ---
 
-# v16 Regex (escaped hyphen fix)
 phone_pattern = r'(\b[689]\d{3}[\s-]?\d{4}\b)|(\+[\d\s\-\(\)]{7,17}\d\b)'
-date_pattern = r'\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b'
+date_pattern = r'(?i)\b(?:dob|birth)\b[^\dA-Za-z]{0,5}((?:\d{1,2}[./-]\d{1,2}[./-]\d{2,4})|(?:\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b))'
+
 id_pattern = r'\b(?:[A-Z]{2}\d{6}|\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{3,4})\b'
 
 REGEX_RULES = {
@@ -54,44 +69,81 @@ REGEX_RULES = {
     "MCR no.": re.compile(r'\b\d{6}\b'), # Simple pattern, relies on context filter
     "EMAIL": re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', re.IGNORECASE),
     "PHONE": re.compile(phone_pattern),
-    "DATE": re.compile(date_pattern),
+    "DATE": re.compile(date_pattern, re.IGNORECASE),
     "ID_NUMBER": re.compile(id_pattern, re.IGNORECASE)
 }
 
-
+# --- THIS IS THE FIX (v24) ---
 AI_BLOCK_LIST = {
     "patient", "patient's", "doctor", "doctor's", "medical", "report",
     "particulars", "name", "age", "mcr", "nric", "fin",
-    "passport", "hospital", "clinic", "visit", "date", "birth"
+    "passport", "hospital", "clinic", "visit", "date", "birth",
+    "event", "registration", "team", "coordinator", "relations",
+    "dear" # Added "dear"
 }
+# -----------------------------
 
 ADDRESS_CONTEXT_WORDS = {
     "address:", "hospital", "clinic", "road", "street", "avenue",
     "blvd", "singapore", "block", "unit", "sunnyville", "harmony"
 }
 
-# --- 3. CORE FUNCTIONS ---
+# --- 3. PRE-PROCESSING FUNCTION ---
+
+def preprocess_image_for_ocr(image_bytes):
+    """
+    Takes image bytes, loads them into OpenCV,
+    and applies filters to make text clearer for EasyOCR.
+    This is ONLY for the OCR, not for the final output.
+    """
+    try:
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Invert (white-on-dark -> black-on-white)
+        img_inverted = cv2.bitwise_not(img_gray)
+        
+        # Binarize (make it pure B&W)
+        _, img_thresh = cv2.threshold(img_inverted, 127, 255, cv2.THRESH_BINARY)
+        
+        is_success, buffer = cv2.imencode(".png", img_thresh)
+        if is_success:
+            return buffer.tobytes()
+        else:
+            return image_bytes # Fallback
+    except Exception as e:
+        print(f"OpenCV pre-processing failed: {e}")
+        return image_bytes # Fallback
+
+# --- 4. CORE FUNCTIONS ---
 
 def run_ocr_on_image(image_bytes):
     """
     Runs EasyOCR on the provided image bytes to extract text and coordinates.
+    It now pre-processes the image first!
     """
     if OCR_READER is None:
         print("OCR_READER is not loaded. Cannot run OCR.")
         return None
+        
+    print("Pre-processing image just for EasyOCR...")
+    preprocessed_bytes = preprocess_image_for_ocr(image_bytes)
+    
     try:
-        results = OCR_READER.readtext(image_bytes, paragraph=False, detail=1)
+        # We feed the "ugly" B&W image to EasyOCR
+        results = OCR_READER.readtext(preprocessed_bytes, paragraph=False, detail=1)
         return results
     except Exception as e:
         print(f"Error during EasyOCR.readtext: {e}")
         return None
 
 # ---------------------------------------------------------------
-# 🧠 THE "BRAIN" FUNCTION (v18) 🧠
+# 🧠 THE "BRAIN" FUNCTION (v20 logic) 🧠
 # ---------------------------------------------------------------
 def find_sensitive_entities(ocr_results, categories_to_find):
     """
-    v18 - Refined DATE context filter
+    v20 logic - We now trust the AI *unless* it's in the block list.
     """
     print(f"Finding sensitive entities for: {categories_to_find}")
     
@@ -128,7 +180,6 @@ def find_sensitive_entities(ocr_results, categories_to_find):
         
         if run_ai:
             doc = NLP(text)
-            address_context_found = any(word in lower_text for word in ADDRESS_CONTEXT_WORDS)
             
             for ent in doc.ents:
                 
@@ -146,7 +197,6 @@ def find_sensitive_entities(ocr_results, categories_to_find):
                 # Detect unified <ADDRESS>
                 elif (ent.label_ in AI_ADDRESS_LABELS and 
                       "ADDRESS" in categories_to_find and 
-                      address_context_found and 
                       ent.text.lower() not in AI_BLOCK_LIST):
                     
                     all_findings_in_line.append({
@@ -166,14 +216,13 @@ def find_sensitive_entities(ocr_results, categories_to_find):
             if label == "NRIC/FIN" and not re.search(r'\b(nric|fin|passport)\b', lower_text):
                 continue
             
-            # --- THIS IS THE FIX (v19) ---
-            # REMOVED the context filter for PHONE, as it was
-            # too strict and missed the number in the header.
+            # --- THIS IS THE FIX (v24) ---
+            # REMOVED the context filter for PHONE
             # if label == "PHONE" and not re.search(r'\b(phone|tel...)\b', lower_text):
             #     continue
             # -----------------------------
             
-            if label == "DATE" and not re.search(r'\b(birth|dob)\b', lower_text):
+            if label == "DATE" and not re.search(r'\b(date|birth|dob)\b', lower_text):
                 continue
             
             if label == "ID_NUMBER" and not re.search(r'\b(med\. number|ihi|id)\b', lower_text):
@@ -227,8 +276,7 @@ def find_sensitive_entities(ocr_results, categories_to_find):
 
 def redact_image_with_labels(image_bytes, entities_to_redact):
     """
-    Takes the original image and a list of (coordinates, label)
-    and draws the redactions on the image.
+    Takes the ORIGINAL image and draws redactions on it.
     """
     print(f"Redacting image with {len(entities_to_redact)} labels...")
     
@@ -236,6 +284,7 @@ def redact_image_with_labels(image_bytes, entities_to_redact):
         return image_bytes
 
     try:
+        # This 'image_bytes' is the ORIGINAL, full-color image
         image = Image.open(BytesIO(image_bytes))
         draw = ImageDraw.Draw(image)
         
@@ -261,7 +310,7 @@ def redact_image_with_labels(image_bytes, entities_to_redact):
 
         output_stream = BytesIO()
         image.save(output_stream, format="PNG")
-        return output_stream.getvalue()
+        return output_stream.getvalue() # Returns the beautiful, redacted image
 
     except Exception as e:
         print(f"Error redacting image: {e}")
@@ -315,6 +364,7 @@ if __name__ == "__main__":
     if mock_file.getvalue() is None:
         print(f"\nTEST FAILED: Please create a file named '{test_file_path}'")
     else:
+        # This is the ORIGINAL, full-color image
         image_bytes = convert_to_image(mock_file)
         
         if image_bytes:
@@ -324,6 +374,7 @@ if __name__ == "__main__":
             print("Test image saved to 'test_output_from_converter.png'")
             
             print("\n[STEP 2] Running EasyOCR on image...")
+            # This step now has the pre-processing logic inside it
             ocr_results = run_ocr_on_image(image_bytes)
             
             if ocr_results and len(ocr_results) > 0:
@@ -338,6 +389,7 @@ if __name__ == "__main__":
                 entities_to_redact = find_sensitive_entities(ocr_results, categories_to_find)
 
                 print(f"\n[STEP 4] Redacting image with {len(entities_to_redact)} labels...")
+                # We pass the ORIGINAL 'image_bytes' to be drawn on
                 redacted_image_bytes = redact_image_with_labels(image_bytes, entities_to_redact)
                 
                 if redacted_image_bytes:
