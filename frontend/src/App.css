@@ -1,42 +1,364 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* ============================
+   App.css - Unified UI Styles
+   Replace current App.css with this or paste these styles below existing ones
+   ============================ */
+
+/* Global */
+body, html, #root {
+  height: 100%;
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background: #000;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+* { box-sizing: border-box; }
+
+/* Background video (if present in App.js) */
+.video-bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1; /* Push video behind other elements */
+  opacity: 0.25;
+}
+
+/* page wrapper to provide spacing */
+.page-wrapper {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* content area holds title + main block */
+.content-area {
+  width: 100%;
+  max-width: 1200px;
+  margin: 40px auto 0;
+  padding: 0 20px 120px; /* space for fixed footer */
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Title + subtitle */
+.title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  text-shadow: 0 0 18px #00ffb0;
+  margin: 10px 0 6px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.subtitle {
+  color: #c8f7e2;
+  margin-bottom: 30px;
+  font-size: 1.05rem;
+}
+
+/* ======= UNIFIED MAIN BLOCK =======
+   This block joins sidebar + upload + steps as a single row
+   ================================== */
+.main-block {
+  display: flex;
+  align-items: center; /* center vertical alignment */
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+  margin: 20px auto 0;
+  padding: 18px;
+  /* subtle outer glow for the whole block */
+  box-shadow: 0 0 40px rgba(0, 255, 176, 0.08);
+  border-radius: 18px;
+}
+
+/* Sidebar (left) */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 255, 180, 0.05);
+  border: 1px solid rgba(0, 255, 180, 0.3);
+  box-shadow: 0 0 25px rgba(0, 255, 180, 0.3);
+  border-radius: 20px;
+  width: 180px;              /* Increased width (was ~120px) */
+  min-height: 500px;         /* Taller sidebar for balance */
+  padding: 30px 15px;
+  margin-right: 40px;
+  transition: all 0.3s ease;
+}
+
+.sidebar:hover {
+  box-shadow: 0 0 40px rgba(0, 255, 180, 0.6);
+  transform: scale(1.02);
+}
+
+/* Sidebar items */
+.sidebar-item {
+  color: #00ffc8;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 18px 0;            /* Increased spacing between items */
+  padding: 12px 0;
+  cursor: pointer;
+  text-shadow: 0 0 10px #00ffc8;
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: center;
+  border-radius: 12px;
+  background: rgba(0, 255, 180, 0.05);
+}
+
+.sidebar-item:hover {
+  background: rgba(0, 255, 180, 0.15);
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 0 20px rgba(0, 255, 180, 0.4);
+}
+
+
+/* Upload area - middle */
+.upload-box {
+  flex: 1 1 520px;
+  min-width: 420px;
+  max-width: 640px;
+  border: 2px dashed rgba(0, 255, 176, 0.9);
+  border-radius: 14px;
+  padding: 36px 28px;
+  text-align: left;
+  background: rgba(0,0,0,0.45);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  backdrop-filter: blur(6px);
+}
+
+.upload-box:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 50px rgba(0,255,176,0.08);
+}
+
+.upload-label {
+  display: inline-block;
+  color: #00ffb0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file-name {
+  color: #9be3c1;
+  margin-top: 14px;
+}
+
+/* Steps area - right */
+.tips-section {
+  flex: 0 0 420px;
+  min-width: 320px;
+  background: rgba(0, 0, 0, 0.62);
+  border-radius: 14px;
+  padding: 26px;
+  text-align: left;
+  border: 1px solid rgba(0,255,176,0.08);
+  box-shadow: 0 8px 30px rgba(0,255,176,0.05);
+  animation: fadeInRight 900ms ease-out;
+}
+
+/* Steps styling */
+.tips-section h3 {
+  color: #00ffb0;
+  margin: 0 0 10px 0;
+  text-shadow: 0 0 10px rgba(0,255,176,0.9);
+}
+
+.tips-section ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.tips-section li {
+  margin: 10px 0;
+  color: #d7fbe8;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Footer fixed and centered */
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px;
+  margin-top: 50px;
+  color: #00ffb0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  text-shadow: 0 0 12px #00ffb0, 0 0 24px #00ffb0;
+  animation: glowCycle 4s infinite ease-in-out;
+}
+
+@keyframes glowCycle {
+  0%, 100% {
+    opacity: 1;
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    opacity: 0.6;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+.footer-tag {
+  letter-spacing: 1px;
+  transition: transform 0.3s ease;
+}
+
+.footer-tag:hover {
+  transform: scale(1.1);
+  color: #00ffa2;
+  text-shadow: 0 0 20px #00ffa2, 0 0 40px #00ffa2;
+}
+
+/* Floating Admin button, unchanged */
+.floating-admin-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: rgba(0,255,176,0.15);
+  border: 2px solid #00ffb0;
+  color: #00ffb0;
+  font-size: 1.6rem;
+  cursor: pointer;
+  box-shadow: 0 0 28px rgba(0,255,176,0.3);
+  backdrop-filter: blur(6px);
+}
+
+/* small entrance for steps */
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* responsive */
+@media (max-width: 980px) {
+  .main-block {
+    flex-direction: column;
+    gap: 18px;
+    padding: 14px;
   }
+
+  .sidebar {
+    flex-direction: row;
+    width: auto;
+    border-radius: 10px;
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .upload-box, .tips-section {
+    min-width: 90%;
+    max-width: 90%;
+  }
+
+  .footer { bottom: 18px; }
 }
 
-.card {
-  padding: 2em;
+
+/* ============================
+   📄 Preview + Redaction Area
+   ============================ */
+.preview-container {
+  margin-top: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 255, 176, 0.2);
 }
 
-.read-the-docs {
-  color: #888;
+.pdf-preview {
+  width: 100%;
+  height: 320px;
+  border: none;
+}
+
+.pdf-preview.redacted {
+  filter: blur(8px) brightness(0.5);
+  transition: all 0.5s ease;
+}
+
+/* Redaction controls */
+.redact-controls {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.redact-controls label {
+  display: block;
+  color: #9be3c1;
+  font-size: 0.95rem;
+}
+
+.action-btn {
+  margin-top: 10px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #000;
+  transition: all 0.3s ease;
+}
+
+.redact-btn {
+  background-color: #00ffb0;
+}
+
+.redact-btn:hover {
+  box-shadow: 0 0 20px #00ffb0;
+}
+
+.export-btn {
+  background-color: #07cfff;
+}
+
+.export-btn:hover {
+  box-shadow: 0 0 20px #07cfff;
+}
+
+/* ============================
+   👁️ Redacted Preview + Select All
+   ============================ */
+.preview-btn {
+  background-color: #ffb700;
+}
+
+.preview-btn:hover {
+  box-shadow: 0 0 20px #ffb700;
+}
+
+/* Select All label */
+.redact-controls strong {
+  color: #fff;
+  margin-left: 4px;
+}
+
+.redact-controls input[type="checkbox"] {
+  margin-right: 6px;
+}
+
+.pdf-preview {
+  width: 100%;
+  height: 80vh;           /* Make the PDF tall enough */
+  border: 2px solid rgba(0, 255, 176, 0.4);
+}
+
+.pdf-preview.redacted {
+  filter: blur(10px) brightness(0.4);
+  transition: all 0.6s ease;
+  border: 2px solid rgba(255, 0, 0, 0.6);   /* clearer red border */
 }

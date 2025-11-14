@@ -11,6 +11,7 @@
 
 import easyocr
 import spacy
+import traceback
 import re
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
@@ -39,21 +40,16 @@ except Exception as e:
 
 print("Loading spaCy (NLP) model...")
 try:
-    NLP = spacy.load("en_core_web_trf")
-    print("spaCy model loaded successfully.")
-except OSError:
-    print("="*50)
-    print("Error: spaCy model 'en_core_web_trf' not found.")
-    print("Please run this command in your terminal:")
-    print("\n    python3 -m spacy download en_core_web_trf\n")
-    print("="*50)
+    # ✅ Load the transformer model efficiently
+    NLP = spacy.load("en_core_web_trf", exclude=["tagger", "lemmatizer", "textcat", "senter"])
+    print("✅ spaCy transformer model 'en_core_web_trf' loaded successfully.")
+except MemoryError:
+    print("❌ MemoryError: Not enough RAM to load 'en_core_web_trf'.")
+    print("Tip: Close unused programs or switch to 'en_core_web_md' for lighter performance.")
     NLP = None
-except ImportError:
-    print("="*50)
-    print("Error: spaCy model 'en_core_web_trf' not found.")
-    print("Please run this command in your terminal:")
-    print("\n    python3 -m spacy download en_core_web_trf\n")
-    print("="*50)
+except Exception as e:
+    print("⚠️ Failed to load spaCy transformer model:")
+    traceback.print_exc()
     NLP = None
 
 

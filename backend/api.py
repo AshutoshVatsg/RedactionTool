@@ -12,6 +12,7 @@
 # -----------------------------------------------------------------
 
 import json
+import traceback
 from io import BytesIO
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS  # Import CORS
@@ -32,7 +33,8 @@ except ImportError as e:
     print("="*50)
     exit()
 except Exception as e:
-    print(f"An unexpected error occurred during import: {e}")
+    print("An unexpected error occurred during import:")
+    traceback.print_exc()
     exit()
 
 # --- 1. Setup the Flask App ---
